@@ -39,19 +39,7 @@
 
     NSLog(@"Starting Firebase Messaging plugin");
 
-    if(![FIRApp defaultApp]) {
-        [FIRApp configure];
-    }
-
-    [FIRMessaging messaging].delegate = self;
     [UNUserNotificationCenter currentNotificationCenter].delegate = self;
-
-    if (launchOptions) {
-        NSDictionary *userInfo = launchOptions[UIApplicationLaunchOptionsRemoteNotificationKey];
-        if (userInfo) {
-            [self postNotification:userInfo background:TRUE];
-        }
-    }
 
     return handled;
 }
@@ -60,23 +48,23 @@
     return [self.viewController getCommandInstance:@"FirebaseMessaging"];
 }
 
-- (void)postNotification:(NSDictionary*)userInfo background:(BOOL)background {
-    FirebaseMessagingPlugin* fmPlugin = [self getPluginInstance];
-    if (background) {
-        [fmPlugin sendBackgroundNotification:userInfo];
-    } else {
-        [fmPlugin sendNotification:userInfo];
-    }
-}
-
 // handle incoming notification messages while app is in the background
 - (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo
 fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler {
-    BOOL value = application.applicationState != UIApplicationStateActive;
-
-    [self postNotification:userInfo background:value];
+    FirebaseMessagingPlugin* fcmPlugin = [self getPluginInstance];
+    if (application.applicationState != UIApplicationStateActive) {
+        [fcmPlugin sendBackgroundNotification:userInfo];
+    } else {
+        [fcmPlugin sendNotification:userInfo];
+    }
 
     completionHandler(UIBackgroundFetchResultNewData);
+}
+
+- (void)messaging:(FIRMessaging *)messaging didReceiveRegistrationToken:(NSString *)fcmToken {
+    FirebaseMessagingPlugin* fcmPlugin = [self getPluginInstance];
+
+    [fcmPlugin sendToken:fcmToken];
 }
 
 # pragma mark - UNUserNotificationCenterDelegate
@@ -85,9 +73,10 @@ fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler {
        willPresentNotification:(UNNotification *)notification
          withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
     NSDictionary *userInfo = notification.request.content.userInfo;
+    FirebaseMessagingPlugin* fcmPlugin = [self getPluginInstance];
 
-    [self postNotification:userInfo background:FALSE];
-    // Change this to your preferred presentation option
+    [fcmPlugin sendNotification:userInfo];
+
     completionHandler([self getPluginInstance].forceShow);
 }
 
@@ -96,16 +85,11 @@ fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler {
 didReceiveNotificationResponse:(UNNotificationResponse *)response
          withCompletionHandler:(void (^)(void))completionHandler {
     NSDictionary *userInfo = response.notification.request.content.userInfo;
+    FirebaseMessagingPlugin* fcmPlugin = [self getPluginInstance];
 
-    [self postNotification:userInfo background:TRUE];
+    [fcmPlugin sendBackgroundNotification:userInfo];
 
     completionHandler();
-}
-
-# pragma mark - FIRMessagingDelegate
-
-- (void)messaging:(FIRMessaging *)messaging didReceiveRegistrationToken:(NSString *)fcmToken {
-    [[self getPluginInstance] sendToken:fcmToken];
 }
 
 @end
