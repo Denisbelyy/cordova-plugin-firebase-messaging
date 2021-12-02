@@ -6,14 +6,6 @@
 
 @implementation FirebaseMessagingPlugin
 
-- (void)pluginInitialize {
-    NSLog(@"Starting Firebase Messaging plugin");
-
-    if(![FIRApp defaultApp]) {
-        [FIRApp configure];
-    }
-}
-
 - (void)requestPermission:(CDVInvokedUrlCommand *)command {
     NSDictionary* options = [command.arguments objectAtIndex:0];
 
@@ -51,7 +43,7 @@
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
-- (void)deleteToken:(CDVInvokedUrlCommand *)command {
+- (void)revokeToken:(CDVInvokedUrlCommand *)command {
     [[FIRMessaging messaging] deleteTokenWithCompletion:^(NSError * err) {
         CDVPluginResult *pluginResult;
         if (err) {
